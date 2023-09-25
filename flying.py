@@ -42,15 +42,14 @@ def take_off_simple(scf):
 def test(scf):
     with MotionCommander(scf, default_height=DEFAULT_HEIGHT) as mc:
         #@ 0.5m
-        mc.left(0.5,0.5)
-        mc.forward(0.5,0.5)
-        mc.up(0.5,0.5)
+        mc.left(0.5,0.25)
+        mc.forward(0.5,0.25)
+        mc.up(0.5,0.25)
         #@ 1m
-        mc._set_vel_setpoint(-0.5, -0.5, 0, 0)
-        time.sleep(2.83)
-        mc.down(0.5,0.5)
-        mc.forward(0.5,0.5)
-        mc.left(0.5,0.5)
+        mc.move_distance(-1, -1, 0, 0.25)
+        mc.down(0.5,0.25)
+        mc.forward(0.5,0.25)
+        mc.left(0.5,0.25)
 
 
 
