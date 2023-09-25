@@ -39,6 +39,21 @@ def take_off_simple(scf):
         mc.stop()
 
 
+def test(scf):
+    with MotionCommander(scf, default_height=DEFAULT_HEIGHT) as mc:
+        #@ 0.5m
+        mc.left(0.5,0.5)
+        mc.forward(0.5,0.5)
+        mc.up(0.5,0.5)
+        #@ 1m
+        mc._set_vel_setpoint(-0.5, -0.5, 0, 0)
+        time.sleep(2.83)
+        mc.down(0.5,0.5)
+        mc.forward(0.5,0.5)
+        mc.left(0.5,0.5)
+
+
+
 def log_pos_callback(timestamp, data, logconf):
     print(data)
     global position_estimate
@@ -77,6 +92,7 @@ if __name__ == '__main__':
 
         logconf.start()
 
-        move_linear_simple(scf)
+        # move_linear_simple(scf)
         # take_off_simple(scf)
+        test(scf)
         logconf.stop()
