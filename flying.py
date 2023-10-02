@@ -50,6 +50,8 @@ def test(scf):
         mc.down(0.5,0.25)
         mc.forward(0.5,0.25)
         mc.left(0.5,0.25)
+        mc.circle_right(0.25, 0.25, 360)
+        mc.circle_left(0.25, 0.25, 360)
 
 
 
