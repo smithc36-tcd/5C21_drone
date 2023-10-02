@@ -9,6 +9,7 @@ from cflib.crazyflie.log import LogConfig
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.positioning.motion_commander import MotionCommander
 from cflib.utils import uri_helper
+from cflib.utils.power_switch import PowerSwitch
 
 
 URI = uri_helper.uri_from_env(default='radio://0/57/2M/EE5C21CFA8')
@@ -41,18 +42,17 @@ def take_off_simple(scf):
 
 def test(scf):
     with MotionCommander(scf, default_height=DEFAULT_HEIGHT) as mc:
-        #@ 0.5m
-        mc.left(0.5,0.25)
-        mc.forward(0.5,0.25)
-        mc.up(0.5,0.25)
-        #@ 1m
+        # @ 0.5m
+        mc.left(0.5, 0.25)
+        mc.forward(0.5, 0.25)
+        mc.up(0.5, 0.25)
+        # @ 1m
         mc.move_distance(-1, -1, 0, 0.25)
-        mc.down(0.5,0.25)
-        mc.forward(0.5,0.25)
-        mc.left(0.5,0.25)
+        mc.down(0.5, 0.25)
+        mc.forward(0.5, 0.25)
+        mc.left(0.5, 0.25)
         mc.circle_right(0.25, 0.25, 360)
         mc.circle_left(0.25, 0.25, 360)
-
 
 
 def log_pos_callback(timestamp, data, logconf):
@@ -70,6 +70,13 @@ def param_deck_flow(name, value_str):
         print('Deck is attached!')
     else:
         print('Deck is NOT attached!')
+
+
+def reboot():
+    if URI is not None:
+        PowerSwitch(sys.argv[1]).stm_power_cycle()
+    else:
+        pass
 
 
 if __name__ == '__main__':
@@ -97,3 +104,4 @@ if __name__ == '__main__':
         # take_off_simple(scf)
         test(scf)
         logconf.stop()
+        reboot()
