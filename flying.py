@@ -74,7 +74,7 @@ def param_deck_flow(name, value_str):
 
 def reboot():
     if URI is not None:
-        PowerSwitch(sys.argv[1]).stm_power_cycle()
+        PowerSwitch(URI).stm_power_cycle()
     else:
         pass
 
@@ -83,6 +83,8 @@ if __name__ == '__main__':
     cflib.crtp.init_drivers()
 
     with SyncCrazyflie(URI, cf=Crazyflie(rw_cache='./cache')) as scf:
+
+        print(URI)
 
         scf.cf.param.add_update_callback(group='deck', name='bcZRanger2',
                                          cb=param_deck_flow)
