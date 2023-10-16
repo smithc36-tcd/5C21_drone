@@ -11,6 +11,7 @@ from cflib.positioning.motion_commander import MotionCommander
 from cflib.positioning.position_hl_commander import PositionHlCommander
 from cflib.utils import uri_helper
 from cflib.utils.power_switch import PowerSwitch
+from cflib.crazyflie.high_level_commander import HighLevelCommander
 
 
 URI = uri_helper.uri_from_env(default='radio://0/57/2M/EE5C21CFA8')
@@ -23,24 +24,45 @@ logging.basicConfig(level=logging.ERROR)
 
 position_estimate = [0, 0]
 
+def land(scf):
+    with PositionHlCommander(scf, default_height=DEFAULT_HEIGHT) as hl:
+        hl.go_to(0, 0, 0.5, 0.5)
+
+def lighthouse(scf):
+    with PositionHlCommander(scf, default_height=DEFAULT_HEIGHT) as hl:
+        hl.go_to(0, 0)
+        hl.go_to(0.8, 0)
+        hl.go_to(0.8, 0.8)
+        hl.go_to(-0.8, 0.8)
+        hl.go_to(-0.8, 0)
+        hl.go_to(0, 0)
+
+
+def high_lighthouse(scf):
+    hlc = HighLevelCommander()
+    hlc._cf = scf.cf
+    hlc.takeoff(0.5, 1, 0, 180)
+        
+   
 
 def test(scf):
     with MotionCommander(scf, default_height=DEFAULT_HEIGHT) as mc:
-        with PositionHlCommander(scf, default_height=DEFAULT_HEIGHT) as hl:
-            # around wall
-            mc.forward(0.5, 0.5)
-            mc.circle_left(0.5, 0.5, 180)
-            mc.forward(1, 0.5)
-            mc.circle_left(0.5, 0.5, 180)
-            mc.forward(0.5, 0.5)
-            # around wall
-            mc.forward(0.5, 0.5)
-            mc.circle_right(0.5, 0.5, 180)
-            mc.forward(0.8, 0.5)
-            mc.turn_right(90, 45)
-            # over wall
-            mc.up(0.7, 0.5)
-            mc.forward(0.90, 0.5)
+        # around wall
+        mc.forward(0.5, 0.5)
+        mc.circle_left(0.5, 0.5, 180)
+        mc.forward(1, 0.5)
+        mc.circle_left(0.5, 0.5, 180)
+        mc.forward(0.5, 0.5)
+        # around wall
+        mc.forward(0.5, 0.5)
+        mc.circle_right(0.5, 0.5, 180)
+        mc.forward(0.8, 0.5)
+        mc.turn_right(90, 45)
+        # over wall
+        mc.up(0.7, 0.5)
+        mc.forward(0.90, 0.5)
+    with PositionHlCommander(scf, default_height=DEFAULT_HEIGHT) as hl:
+        hl.go_to(0, 0, 0.5, 0.5)
 
 
 def log_pos_callback(timestamp, data, logconf):
@@ -90,5 +112,5 @@ if __name__ == '__main__':
 
         logconf.start()
         test(scf)
+        #high_lighthouse(scf)
         logconf.stop()
-        reboot()
