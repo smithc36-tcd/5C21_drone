@@ -46,7 +46,8 @@ def high_lighthouse(scf):
    
 
 def test(scf):
-    with MotionCommander(scf, default_height=DEFAULT_HEIGHT) as mc:
+    hl = PositionHlCommander(scf, default_height=DEFAULT_HEIGHT)
+    with MotionCommander(scf, default_height=DEFAULT_HEIGHT) as mc:    
         # around wall
         mc.forward(0.5, 0.5)
         mc.circle_left(0.5, 0.5, 180)
@@ -60,9 +61,14 @@ def test(scf):
         mc.turn_right(90, 45)
         # over wall
         mc.up(0.7, 0.5)
-        mc.forward(0.90, 0.5)
-    with PositionHlCommander(scf, default_height=DEFAULT_HEIGHT) as hl:
-        hl.go_to(0, 0, 0.5, 0.5)
+        #mc.forward(0.90, 0.5)
+        hl.go_to(0, 0, 1.2, 0.5)
+        time.sleep(10)
+        hl.land
+        time.sleep(10)
+
+
+
 
 
 def log_pos_callback(timestamp, data, logconf):
@@ -110,7 +116,8 @@ if __name__ == '__main__':
             print('No flow deck detected!')
             sys.exit(1)
 
+
         logconf.start()
         test(scf)
-        #high_lighthouse(scf)
+        #lighthouse(scf)
         logconf.stop()
