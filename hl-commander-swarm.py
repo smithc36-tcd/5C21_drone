@@ -37,6 +37,11 @@ from cflib.crazyflie.swarm import CachedCfFactory
 from cflib.crazyflie.swarm import Swarm
 
 
+# PID = 1
+# Mellenger = 2
+# INDI = 3
+# Brescianini = 4
+
 def activate_mellinger_controller(scf, use_mellinger):
     controller = 1
     if use_mellinger:
@@ -45,9 +50,9 @@ def activate_mellinger_controller(scf, use_mellinger):
 
 
 def run_shared_sequence(scf):
-    activate_mellinger_controller(scf, False)
+    activate_mellinger_controller(scf, True)
 
-    box_size = 1
+    box_size = 0.5
     flight_time = 2
 
     commander = scf.cf.high_level_commander
@@ -74,8 +79,9 @@ def run_shared_sequence(scf):
 
 
 uris = {
-    'radio://0/30/2M/E7E7E7E711',
-    'radio://0/30/2M/E7E7E7E712',
+    'radio://0/57/2M/EE5C21CFC8',
+    'radio://0/57/2M/EE5C21CFA8',
+    'radio://0/57/2M/EE5C21CFF8',
     # Add more URIs if you want more copters in the swarm
 }
 
