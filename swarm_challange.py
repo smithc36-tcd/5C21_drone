@@ -19,27 +19,26 @@ import matplotlib.pyplot as plt
 # INDI = 3
 # Brescianini = 4
 
-URI0 = 'radio://0/57/2M/EE5C21CFA8'
-URI1 = 'radio://0/57/2M/EE5C21CFF8'
+URI0 = 'radio://0/57/2M/EE5C21CFF8'
+# URI1 = 'radio://0/57/2M/EE5C21CFA8'
 URI2 = 'radio://0/57/2M/EE5C21CFC8'
 
 
-# d: diameter of circle
 # z: altitude
 params0 = {'z': 0.3}
-params1 = {'z': 0.3}
+# params1 = {'z': 0.3}
 params2 = {'z': 0.3}
 
 
 uris = {
     URI0,
-    URI1,
+    # URI1,
     URI2,
 }
 
 params = {
     URI0: [params0],
-    URI1: [params1],
+    # URI1: [params1],
     URI2: [params2],
 }
 # Scale factor for the heart shape
@@ -54,18 +53,16 @@ def poshold(cf, t, z):
 # Function to run the heart shape sequence
 def run_heart_sequence(scf, params):
   cf = scf.cf
-  fs = 4  # Number of setpoints sent per second
+  fs = 80  # Number of setpoints sent per second
   fsi = 1.0 / fs
   base = 0.15
 
-  heart_time = 8  # Duration of the heart shape flight
+  heart_time = 16  # Duration of the heart shape flight
   steps = heart_time * fs
   previous_x = scale_factor * 16 * math.sin(0) ** 3
   previous_y = scale_factor * (13 * math.cos(0) - 5 * math.cos(0) - 2 * math.cos(0) - math.cos(0))
 
-  poshold(cf, 2, base)
-
-  ramp = fs * 2
+  ramp = 4 * 2
   for r in range(ramp):
     cf.commander.send_hover_setpoint(0, 0, 0, 0)
     time.sleep(fsi)
@@ -73,6 +70,7 @@ def run_heart_sequence(scf, params):
   z = params['z']
 
   poshold(cf, 2, z)
+
 
   for i in range(1, steps):
     t = (2 * math.pi * i) / steps  # t goes from 0 to 2π
@@ -102,8 +100,6 @@ def run_heart_sequence(scf, params):
   for r in range(ramp):
     cf.commander.send_hover_setpoint(0, 0, 0,0)
     time.sleep(fsi)
-
-  poshold(cf, 1, base)
 
   cf.commander.send_stop_setpoint()
   cf.commander.send_notify_setpoint_stop()
@@ -207,6 +203,14 @@ def plot_position_with_velocity_vectors(x_coords, y_coords, vx_coords, vy_coords
   plt.legend()
   plt.show()
 
+def leds(scf):
+    # Set solid color effect
+    scf.cf.param.set_value('ring.effect', '7')
+    # Set the RGB values
+    scf.cf.param.set_value('ring.solidRed', '255')
+    # scf.cf.param.set_value('ring.solidGreen', '20')
+    # scf.cf.param.set_value('ring.solidBlue', '147')
+
 
 if __name__ == '__main__':
     cflib.crtp.init_drivers()
@@ -217,22 +221,17 @@ if __name__ == '__main__':
     heart_time = 8  # Duration of the heart shape flight
     steps = heart_time * fs
 
-    # # Generate velocities for the heart shape path
     # vx_coords, vy_coords = generate_heart_shape_velocities(scale_factor, steps, fsi)
-
-    # # Generate positions for the heart shape path
     # x_coords, y_coords = generate_heart_shape_positions(scale_factor, steps)
-
-    # # Plotting the velocities
     # plot_velocities(vx_coords, vy_coords)
-
-    # # Plotting the position graph with velocity vectors
     # plot_position_with_velocity_vectors(x_coords, y_coords, vx_coords, vy_coords, 10)  # Vector every 10 steps
 
     # Run the actual drone flight sequence (commented out for safety)
     factory = CachedCfFactory(rw_cache='./cache')
     with Swarm(uris, factory=factory) as swarm:
-       swarm.reset_estimators()
-       swarm.parallel(run_heart_sequence, args_dict=params)
+      swarm.parallel(leds)
+      swarm.reset_estimators()
+      swarm.parallel(run_heart_sequence, args_dict=params)
+
 
 
