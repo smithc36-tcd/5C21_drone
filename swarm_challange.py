@@ -14,224 +14,135 @@ import math
 import sys
 import matplotlib.pyplot as plt
 
-# PID = 1
-# Mellenger = 2
-# INDI = 3
-# Brescianini = 4
-
 URI0 = 'radio://0/57/2M/EE5C21CFF8'
-# URI1 = 'radio://0/57/2M/EE5C21CFA8'
+URI1 = 'radio://0/57/2M/EE5C21CFA8'
 URI2 = 'radio://0/57/2M/EE5C21CFC8'
 
-
 # z: altitude
-params0 = {'z': 0.3}
-# params1 = {'z': 0.3}
-params2 = {'z': 0.3}
+params0 = {'id': 0, 'z': 0.3}
+params1 = {'id': 2, 'z': 0}
+params2 = {'id': 1, 'z': -0.3}
 
 
 uris = {
     URI0,
-    # URI1,
+    URI1,
     URI2,
 }
 
 params = {
     URI0: [params0],
-    # URI1: [params1],
+    URI1: [params1],
     URI2: [params2],
 }
-# Scale factor for the heart shape
-scale_factor = 0.03  # To fit the heart in a 1m^2 box
-def poshold(cf, t, z):
-  steps = t * 10
 
-  for r in range(steps):
-    cf.commander.send_hover_setpoint(0, 0, 0, z)
-    time.sleep(0.1)
+# Scales x and y points to fit within a square of length 'size'. Maintains aspect ratio.
+def scale(points, size):
 
-# Function to run the heart shape sequence
-def run_heart_sequence(scf, params):
-  cf = scf.cf
-  fs = 80  # Number of setpoints sent per second
-  fsi = 1.0 / fs
-  base = 0.15
+  if max(points[:, 0]) > max(points[:, 1]):
+    points = points * size / (max(points[:, 0]) - min(points[:, 0]))
+  else:
+    points = points * size / (max(points[:, 1]) - min(points[:, 1]))
 
-  heart_time = 16  # Duration of the heart shape flight
-  steps = heart_time * fs
-  previous_x = scale_factor * 16 * math.sin(0) ** 3
-  previous_y = scale_factor * (13 * math.cos(0) - 5 * math.cos(0) - 2 * math.cos(0) - math.cos(0))
+  return points
 
-  ramp = 4 * 2
-  for r in range(ramp):
-    cf.commander.send_hover_setpoint(0, 0, 0, 0)
-    time.sleep(fsi)
+# Generate points for a heart using a parametric equation I stole from desmos.
+def gen_heart(num_points, size):
 
-  z = params['z']
+  points = np.zeros((num_points, 2))
 
-  poshold(cf, 2, z)
+  for i in range(0, num_points):
 
+    t = (i / num_points) * 2 * np.pi
 
-  for i in range(1, steps):
-    t = (2 * math.pi * i) / steps  # t goes from 0 to 2π
+    x = 16 * np.power(np.sin(t), 3)
+    y = 13 * np.cos(t) - 5 * np.cos(2 * t) - 2 * np.cos(3 * t) - np.cos(4 * t)
 
-    # Calculate x and y positions using the heart equations
-    x = 16 * math.sin(t) ** 3
-    y = 13 * math.cos(t) - 5 * math.cos(2*t) - 2 * math.cos(3*t) - math.cos(4*t)
+    points[i, 0] = x
+    points[i, 1] = y
 
-    # Apply the scale factor
-    x_scaled = scale_factor * x
-    y_scaled = scale_factor * y
+  return scale(points, size)
 
-    # Calculate velocities
-    vx = (x_scaled - previous_x) / fsi
-    vy = (y_scaled - previous_y) / fsi
+# Generate points for a C, this uses the parametric equation for a circle with a
+# the range of t set to -2 > t > 2
+def gen_c(num_points, size):
 
-    # Update previous x and y for the next iteration
-    previous_x = x_scaled
-    previous_y = y_scaled
+  points = np.zeros((num_points, 2))
 
-    # Send the hover setpoint to the drone
-    cf.commander.send_hover_setpoint(vx, vy, 0, params['z'])
-    time.sleep(fsi)
+  t = np.arange(-2.5, 2.5, 5 / num_points)
 
-  poshold(cf, 2, z)
+  points[:, 0] = -1 * np.cos(t)
+  points[:, 1] = -1 * np.sin(t)
 
-  for r in range(ramp):
-    cf.commander.send_hover_setpoint(0, 0, 0,0)
-    time.sleep(fsi)
+  return scale(points, size)
 
-  cf.commander.send_stop_setpoint()
-  cf.commander.send_notify_setpoint_stop()
+# Generate points for an M, this is just hardcoded and scaled.
+def gen_m(size):
 
-# Function to generate the heart shape velocities
-def generate_heart_shape_velocities(scale_factor, steps, fsi):
-  vx_coords = []
-  vy_coords = []
+  points = np.zeros((5, 2))
 
-  previous_x = scale_factor * 16 * np.sin(0) ** 3
-  previous_y = scale_factor * (13 * np.cos(0) - 5 * np.cos(0) - 2 * np.cos(0) - np.cos(0))
+  points[:, 0] = np.array([-1, -0.75, 0, 0.75, 1])
+  points[:, 1] = np.array([-1, 1, 0.25, 1, -1])
 
-  for i in range(1, steps):
-    t = (2 * np.pi * i) / steps  # t goes from 0 to 2π
+  return scale(points, size)
 
-    x = 16 * np.sin(t) ** 3
-    y = 13 * np.cos(t) - 5 * np.cos(2*t) - 2 * np.cos(3*t) - np.cos(4*t)
+# Generate points for a heart, C and M. 'size' will be the maximum space required 
+# to display the points.
+def swarm_points(size):
 
-    x_scaled = scale_factor * x
-    y_scaled = scale_factor * y
+  heart_points = gen_heart(50, size)
+  c_points = gen_c(20, size / 5)
+  m_points = gen_m(size / 5)
 
-    vx = (x_scaled - previous_x) / fsi
-    vy = (y_scaled - previous_y) / fsi
+  c_points[:, 0] = c_points[:, 0] - size / 6
+  m_points[:, 0] = m_points[:, 0] + size / 6
 
-    previous_x = x_scaled
-    previous_y = y_scaled
+  return heart_points, c_points, m_points
 
-    vx_coords.append(vx)
-    vy_coords.append(vy)
+# Calculates the total length of a path in metres. Can be used to inform velocity.
+def path_length(points):
 
-  return vx_coords, vy_coords
+  length = 0
 
-def generate_heart_shape_positions(scale_factor, steps):
-  x_coords = []
-  y_coords = []
-  
-  for i in range(steps):
-    t = (2 * np.pi * i) / steps  # t goes from 0 to 2π
+  for i in range(0, len(points[:, 1]) - 1):
 
-    # Calculate x and y positions using the heart equations
-    x = 16 * np.sin(t) ** 3
-    y = 13 * np.cos(t) - 5 * np.cos(2*t) - 2 * np.cos(3*t) - np.cos(4*t)
+    xlen = points[i + 1, 0] - points[i, 0]
+    ylen = points[i + 1, 1] - points[i, 1]
 
-    # Apply the scale factor
-    x_scaled = scale_factor * x
-    y_scaled = scale_factor * y
+    length += np.sqrt(np.power(xlen, 2) + np.power(ylen, 2))
 
-    x_coords.append(x_scaled)
-    y_coords.append(y_scaled)
+  return np.round(length, 2)
 
-  return x_coords, y_coords
+# Run each individual path using the High Level Commander
+def run_path(scf, points, velocity):
+  with PositionHlCommander(scf) as hl:
+    hl.go_to(points[0][0], points[0][1], 0.5, velocity)
+    time.sleep(3)
+    for i in range (len(points)-1):
+      hl.go_to(points[i+1][0], points[i+1][1], 0.5, velocity)
+    time.sleep(15)
 
-# Plotting function for velocities
-def plot_velocities(vx_coords, vy_coords):
-  plt.figure()
+# Function to split into different threads for each drone.
+def swarm_path(scf, params):
 
-  plt.subplot(1, 2, 1)
-  plt.plot(vx_coords, color='blue')
-  plt.title("X Velocities")
-  plt.xlabel("Step")
-  plt.ylabel("Velocity (m/s)")
-  plt.grid(True)
+  heart_points, c_points, m_points = swarm_points(1.8)
 
-  plt.subplot(1, 2, 2)
-  plt.plot(vy_coords, color='green')
-  plt.title("Y Velocities")
-  plt.xlabel("Step")
-  plt.ylabel("Velocity (m/s)")
-  plt.grid(True)
-
-  plt.tight_layout()
-  plt.show()
-
-# Function to plot position graph with velocity vectors
-def plot_position_with_velocity_vectors(x_coords, y_coords, vx_coords, vy_coords, step_interval):
-
-  plt.figure(figsize=(8, 8))
-  plt.plot(x_coords, y_coords, color='red', label='Flight Path')
-
-  # Plot velocity vectors every 'step_interval' steps
-  for i in range(0, len(x_coords), step_interval):
-    # Calculate the magnitude of the velocity vector
-    velocity_magnitude = np.sqrt(vx_coords[i]**2 + vy_coords[i]**2)
-
-    # Normalize the velocity components to represent the direction
-    if velocity_magnitude != 0:
-      vx_norm = vx_coords[i] / velocity_magnitude
-      vy_norm = vy_coords[i] / velocity_magnitude
-    else:
-      vx_norm, vy_norm = 0, 0
-
-    # Plot the vector with length equal to the velocity magnitude
-    plt.arrow(x_coords[i], y_coords[i], vx_norm * velocity_magnitude, vy_norm * velocity_magnitude, 
-              head_width=0.02, head_length=0.03, fc='blue', ec='blue')
-
-  plt.title("Position Graph with Velocity Vectors")
-  plt.xlabel("X Coordinate (meters)")
-  plt.ylabel("Y Coordinate (meters)")
-  plt.grid(True)
-  plt.axis('equal')
-  plt.legend()
-  plt.show()
-
-def leds(scf):
-    # Set solid color effect
-    scf.cf.param.set_value('ring.effect', '7')
-    # Set the RGB values
-    scf.cf.param.set_value('ring.solidRed', '255')
-    # scf.cf.param.set_value('ring.solidGreen', '20')
-    # scf.cf.param.set_value('ring.solidBlue', '147')
+  if params['id'] == 0:
+    run_path(scf, heart_points, path_length(heart_points) / 10)
+  elif params['id'] == 1:
+    run_path(scf, c_points, path_length(c_points)*1.2 / 10)
+  elif params['id'] == 2:
+    run_path(scf, m_points, path_length(m_points)*1.3 / 10)
 
 
 if __name__ == '__main__':
     cflib.crtp.init_drivers()
 
-    # Parameters for plotting
-    fs = 40  # Frequency of updates
-    fsi = 1.0 / fs
-    heart_time = 8  # Duration of the heart shape flight
-    steps = heart_time * fs
-
-    # vx_coords, vy_coords = generate_heart_shape_velocities(scale_factor, steps, fsi)
-    # x_coords, y_coords = generate_heart_shape_positions(scale_factor, steps)
-    # plot_velocities(vx_coords, vy_coords)
-    # plot_position_with_velocity_vectors(x_coords, y_coords, vx_coords, vy_coords, 10)  # Vector every 10 steps
-
     # Run the actual drone flight sequence (commented out for safety)
     factory = CachedCfFactory(rw_cache='./cache')
     with Swarm(uris, factory=factory) as swarm:
-      swarm.parallel(leds)
       swarm.reset_estimators()
-      swarm.parallel(run_heart_sequence, args_dict=params)
+      swarm.parallel(swarm_path, args_dict=params)
 
 
 
